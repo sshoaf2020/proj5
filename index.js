@@ -193,8 +193,6 @@ let filterSortPaginate = (type, queryArgs, items) => {
     //else result = 0
 
     //multiply result by direction and return it
-    console.log("direction: " + direction);
-    console.log("sort: " + key);
     return result * direction;
   };
 
