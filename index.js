@@ -166,6 +166,7 @@ let filterSortPaginate = (type, queryArgs, items) => {
   //used to sort items
   let sorter = (a, b) => {
     //key to compare is in queryArgs._sort
+    //make key variables to make it easier to read
     let theKey = queryArgs._sort;
     aKey = a[theKey];
     bKey = b[theKey];
@@ -177,8 +178,8 @@ let filterSortPaginate = (type, queryArgs, items) => {
       aKey = aKey.toLowerCase();
       bKey = bKey.toLowerCase();
     }
-
-    //make key variables to make it
+    //log to console
+    console.log(a + " " + b);
 
     //if a[key] (lowercased) > b[key] (lowercased)
     if (aKey > bKey) {
@@ -217,7 +218,7 @@ let filterSortPaginate = (type, queryArgs, items) => {
   return items;
 };
 
-//TOdo
+//TODO
 
 // post students
 app.post("/students", function(req, res) {
@@ -286,7 +287,6 @@ app.put("/students/:id", function(req, res) {
       _ref: "/students/" + id
     };
     let userObjJSON = JSON.stringify(userObj);
-
     client.hset("student:" + id, "obj", userObjJSON);
     res.status(200).send(userObjJSON);
   } else if (
@@ -304,7 +304,6 @@ app.put("/students/:id", function(req, res) {
 app.get("/students/:id", function(req, res) {
   if (req.params.id !== undefined) {
     let id = req.params.id;
-
     client.sismember("students", id, function(err, reply) {
       if (reply === 1) {
         client.hget("student:" + id, "obj", function(err, reply) {
@@ -360,28 +359,27 @@ app.post("/grades", function(req, res) {
   ) {
     client.get("grades", function(err, reply) {
       let num = reply;
+      //incr num
       num++;
       let gradeObj = req.body;
       gradeObj._ref = "/grades/" + num;
       gradeObj.id = num;
       let gradeObjJSON = JSON.stringify(gradeObj);
-
+      //send grade obj to console
       console.log();
       console.log(gradeObj);
-      console.log();
-
-      //id is expected to be a string
+      //to string
       gradeObj.id = gradeObj.id.toString();
-
+      //set
       client.set("grades", num);
       client.hset("grade:" + num, "obj", gradeObjJSON);
-
       gradeObjJSON = JSON.stringify(gradeObj);
-
+      //200
       res.status(200).send(gradeObjJSON);
       console.log(gradeObjJSON);
     });
   } else {
+    //400 error
     res.sendStatus(400);
   }
 });
@@ -390,7 +388,6 @@ app.post("/grades", function(req, res) {
 app.get("/grades/:id", function(req, res) {
   if (req.params.id !== undefined) {
     let id = req.params.id;
-
     client.hget("grade:" + id, "obj", function(err, reply) {
       if (reply !== null) {
         let gradeObj = JSON.parse(reply);
@@ -412,7 +409,8 @@ app.put("/grades/:id", function(req, res) {
     client.hget("grade:" + id, "obj", function(err, reply) {
       if (reply !== null) {
         let gradeObj = JSON.parse(reply);
-
+        //whole buncha ifs, check for undefined,
+        //if undefined, set the value
         if (req.body.student_id !== undefined) {
           gradeObj.student_id = req.body.student_id;
         }
@@ -425,9 +423,7 @@ app.put("/grades/:id", function(req, res) {
         if (req.body.max !== undefined) {
           gradeObj.max = req.body.max;
         }
-
         let gradeObjJSON = JSON.stringify(gradeObj);
-
         client.hset("grade:" + id, "obj", gradeObjJSON);
         res.sendStatus(200);
       } else {
@@ -443,9 +439,9 @@ app.put("/grades/:id", function(req, res) {
 
 //DELETE GRADES/:id
 app.delete("/grades/:id", function(req, res) {
+  //if undefined, the value needs to be set
   if (req.params.id !== undefined) {
     let id = req.params.id;
-
     client.hexists("grade:" + id, "obj", function(err, reply) {
       if (reply === 1) {
         client.hdel("grade:" + id, "obj", function(err, reply) {
@@ -499,7 +495,6 @@ app.delete("/db", function(req, res) {
   client
     .flushallAsync()
     .then(function() {
-      //make sure the test user credentials exist
       let userObj = {
         salt: new Date().toString(),
         id: "teacher"
@@ -508,9 +503,8 @@ app.delete("/db", function(req, res) {
         .createHash("sha256")
         .update("testing" + userObj.salt)
         .digest("base64");
-      //this is a terrible way to do setUser
-      //I'm not waiting for the promise to resolve before continuing
-      //I'm just hoping it finishes before the first req.body comes in attempting to authenticate
+      //found on stack overflow
+      //looks ineffcient but works
       setUser(userObj).then(() => {
         res.sendStatus(200);
       });
@@ -523,8 +517,6 @@ app.delete("/db", function(req, res) {
     });
 });
 
-//catch errors, turn off db?
-//generalized error handler
 const dbErrorHandler = res => err =>
   console.error("DB Error: ", err) &&
   res
