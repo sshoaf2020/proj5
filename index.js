@@ -167,8 +167,8 @@ let filterSortPaginate = (type, queryArgs, items) => {
   let sorter = (a, b) => {
     //key to compare is in queryArgs._sort
     let theKey = queryArgs._sort;
-    aKey = a[thekey];
-    bKey = b[thekey];
+    aKey = a[theKey];
+    bKey = b[theKey];
     //idea taken from stack overflow
     if (theKey == "name" || theKey == "type") {
       aKey = aKey.toLowerCase();
