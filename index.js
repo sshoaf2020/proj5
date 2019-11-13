@@ -236,7 +236,7 @@ app.post("/students", function(req, res) {
             name: name,
             _ref: "/students/" + id
           };
-          let userObj = JSON.stringify(userObj);
+          let JsonUserObj = JSON.stringify(JsonUserObj);
           client.sadd("students", id);
           client.hset("student:" + id, "obj", userObj);
           let response = userObj;
