@@ -13,10 +13,10 @@ const redis = require("redis");
 //make redis use promises
 bluebird.promisifyAll(redis.RedisClient.prototype);
 bluebird.promisifyAll(redis.Multi.prototype);
-//create db redis
+//create db client
 const client = redis.createClient();
 
-//make sure redis connects correctly.
+//make sure client connects correctly.
 client.on("error", function(err) {
   console.log("Error in redis client.on: " + err);
 });
@@ -46,13 +46,13 @@ userObj.hash = crypto
   .digest("base64");
 //this is a terrible way to do setUser
 //I'm not waiting for the promise to resolve before continuing
-//I'm just hoping it finishes before the first req.body comes in attempting to authenticate
+//I'm just hoping it finishes before the first request comes in attempting to authenticate
 setUser(userObj);
 
 //start setting up webserver
 const app = express();
 
-//decode req.body body using json
+//decode request body using json
 app.use(bodyParser.json());
 
 //allow the API to be loaded from an application running on a different host/port
@@ -73,22 +73,20 @@ app.use(function(req, res, next) {
     case "POST":
     case "PUT":
     case "DELETE":
-      //extract the given credentials from the req.body
+      //extract the given credentials from the request
       let creds = auth(req);
 
       //look up userObj using creds.name
       client.hgetallAsync("user:" + creds.name).then(
         userObj => {
           //user exists
-
           //use creds.pass, userObj.salt, userObj.hash, and crypto to validate
-          //whether the creds are valid.
-          let test = crypto
+          let testValid = crypto
             .createHash("sha256")
             .update(creds.pass + userObj.salt)
             .digest("base64");
-          //if they are valid call next();
-          if (test === userObj.hash) {
+          //whether the creds are valid. if they are valid call next();
+          if (testValid === userObj.hash) {
             next();
           } else {
             //otherwise call res.sendStatus(401)
@@ -114,11 +112,10 @@ app.use(function(req, res, next) {
 
 //this takes a set of items and filters, sorts and paginates the items.
 //it gets it's commands from queryArgs and returns a new set of items
+//used like
+//	listOfStudents = filterSortPaginate('student', req.query, listOfStudents)
 let filterSortPaginate = (type, queryArgs, items) => {
   let keys;
-
-  console.log();
-  console.log(queryArgs);
 
   //create an array of filterable/sortable keys
   if (type == "student") {
@@ -137,12 +134,13 @@ let filterSortPaginate = (type, queryArgs, items) => {
         //	and item[key] does NOT include the query args value (case insensitive)
         let arg = queryArgs[keys[i]];
         if (!item[keys[i]].toUpperCase().includes(arg.toUpperCase())) {
-          //	return false
+          //return false
           return false;
         }
       }
     }
     //if we get through the for loop return true
+
     return true;
   };
 
@@ -168,28 +166,32 @@ let filterSortPaginate = (type, queryArgs, items) => {
   //used to sort items
   let sorter = (a, b) => {
     //key to compare is in queryArgs._sort
-    let key = queryArgs._sort;
-    a = a[key];
-    b = b[key];
-    if (key == "name" || key == "type") {
+    let theKey = queryArgs._sort;
+
+    //idea taken from stack overflow
+    if (theKey == "name" || theKey == "type") {
       a = a.toLowerCase();
       b = b.toLowerCase();
-    } else if (key == "id" && type == "student") {
+    } else if (theKey == "id" && type == "student") {
       a = a.toLowerCase();
       b = b.toLowerCase();
     }
-    console.log(a + " " + b);
+
+    //make key variables to make it
+    aKey = a[thekey];
+    bKey = b[thekey];
     //if a[key] (lowercased) > b[key] (lowercased)
     if (a > b) {
-      //	result = 1
       result = 1;
     } else if (a < b) {
-      //if its less than, result = -1
       result = -1;
     } else {
-      //else result = 0
       result = 0;
     }
+    //	result = 1
+    //if its less than, result = -1
+    //else result = 0
+
     //multiply result by direction and return it
     console.log("direction: " + direction);
     console.log("sort: " + key);
@@ -202,6 +204,7 @@ let filterSortPaginate = (type, queryArgs, items) => {
   if (queryArgs._start || queryArgs._end || queryArgs._limit) {
     //use queryArgs._start, _end, & limit
     //to figure out start and end
+    //then items = items.slice(start,end)
     if (!queryArgs._start) {
       queryArgs._start = 0;
     }
@@ -210,20 +213,20 @@ let filterSortPaginate = (type, queryArgs, items) => {
     } else if (!queryArgs._end && !queryArgs._limit) {
       queryArgs._end = length(items);
     }
-    //then items = items.slice(start,end)
     items = items.slice(queryArgs._start, queryArgs._end);
   }
   console.log("items after pagination:", items);
   return items;
 };
 
-//POST STUDENTS
+//TOdo
+
+// post students
 app.post("/students", function(req, res) {
   if (req.body !== undefined) {
     if (req.body.id !== undefined && req.body.name !== undefined) {
       let id = req.body.id;
       let name = req.body.name;
-
       client.sismember("students", id, function(err, reply) {
         if (reply === 1) {
           res.sendStatus(400);
@@ -233,11 +236,10 @@ app.post("/students", function(req, res) {
             name: name,
             _ref: "/students/" + id
           };
-          let userObjJSON = JSON.stringify(userObj);
-
+          let userObj = JSON.stringify(userObj);
           client.sadd("students", id);
-          client.hset("student:" + id, "obj", userObjJSON);
-          let response = userObjJSON;
+          client.hset("student:" + id, "obj", userObj);
+          let response = userObj;
           res.status(200).send(response);
         }
       });
@@ -249,11 +251,10 @@ app.post("/students", function(req, res) {
   }
 });
 
-//DELETE STUDENTS/:username
+//delete them students
 app.delete("/students/:id", function(req, res) {
   if (req.params.id !== undefined) {
     let id = req.params.id;
-
     client.sismember("students", id, function(err, reply) {
       if (reply === 1) {
         client.srem("students", id);
@@ -324,29 +325,23 @@ app.get("/students/:id", function(req, res) {
 
 //GET STUDENTS
 app.get("/students", function(req, res) {
-  //loop through list and do hgetall
   client
     .smembersAsync("students")
     .then(students => {
-      //loop through students create some promises
       let users = [];
       let promises = [];
-
       for (let i = 0; i < students.length; i++) {
         let id = students[i];
-        let p = client.hgetallAsync("student:" + id).then(userObj => {
-          //check userObj
+        let x = client.hgetallAsync("student:" + id).then(userObj => {
           if (userObj !== undefined) {
             users.push(JSON.parse(userObj.obj));
           }
         });
-        promises.push(p);
+        promises.push(x);
       }
-      //use promise.all to unify
       return Promise.all(promises).then(() => users);
     })
     .then(users => {
-      //grab the length of users and put in header
       res.header("X-Total-Count", users.length);
       users = filterSortPaginate("student", req.query, users);
       res
@@ -500,19 +495,6 @@ app.get("/grades", function(req, res) {
         .end();
     });
 });
-
-/*app.get('/grades', function(req, res){
-	client.get('grades', function(err, reply){
-		let num = reply;
-		res.header('X-Total-Count', num);
-		if(num !== 0) {
-			//TODO
-			res.status(200).send(/response);
-		} else {
-			res.status(200).send(JSON.stringify([]));
-		}
-	});
-})*/
 
 //DELETE DB
 app.delete("/db", function(req, res) {
