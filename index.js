@@ -236,10 +236,10 @@ app.post("/students", function(req, res) {
             name: name,
             _ref: "/students/" + id
           };
-          let JsonUserObj = JSON.stringify(JsonUserObj);
+          let JSONUserObj = JSON.stringify(userObj);
           client.sadd("students", id);
-          client.hset("student:" + id, "obj", userObj);
-          let response = userObj;
+          client.hset("student:" + id, "obj", JSONUserObj);
+          let response = JSONUserObj;
           res.status(200).send(response);
         }
       });
