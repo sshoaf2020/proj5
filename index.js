@@ -167,23 +167,23 @@ let filterSortPaginate = (type, queryArgs, items) => {
   let sorter = (a, b) => {
     //key to compare is in queryArgs._sort
     let theKey = queryArgs._sort;
-
+    aKey = a[thekey];
+    bKey = b[thekey];
     //idea taken from stack overflow
     if (theKey == "name" || theKey == "type") {
-      a = a.toLowerCase();
-      b = b.toLowerCase();
+      aKey = aKey.toLowerCase();
+      bKey = bKey.toLowerCase();
     } else if (theKey == "id" && type == "student") {
-      a = a.toLowerCase();
-      b = b.toLowerCase();
+      aKey = aKey.toLowerCase();
+      bKey = bKey.toLowerCase();
     }
 
     //make key variables to make it
-    aKey = a[thekey];
-    bKey = b[thekey];
+
     //if a[key] (lowercased) > b[key] (lowercased)
-    if (a > b) {
+    if (aKey > bKey) {
       result = 1;
-    } else if (a < b) {
+    } else if (aKey < bKey) {
       result = -1;
     } else {
       result = 0;
