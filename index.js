@@ -1,3 +1,8 @@
+/* Steven Shoaf
+   CPSC 4820
+   Baker
+   Fall 2019 
+*/
 const crypto = require("crypto");
 
 //some webserver libs
